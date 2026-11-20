@@ -22,7 +22,7 @@ export function parseRecipe(markdown,path){
  if(/汤|粥|炖/.test(title))tags.push('soupy');
  if(/辣|麻婆|水煮肉/.test(title))tags.push('mild');
  const source='https://github.com/Anduin2017/HowToCook/blob/master/'+path.split('/').map(encodeURIComponent).join('/');
- return {id:'cn-'+hash(path),name:title.slice(0,75),ingredients,allergens:[],tags,method:'中文家常食谱，可按来源查看做法；实际原料和调料需核对。',source,scene:'自己做',emoji:'🍲',cost:0,minutes:1,complete:false,crossContact:true,template:true};
+ return {kind:'recipe',recipeText:plain(markdown).slice(0,20000),id:'cn-'+hash(path),name:title.slice(0,75),ingredients,allergens:[],tags,method:'中文家常食谱，应用已提取配料用于推荐。',source,scene:'自己做',emoji:'🍲',cost:0,minutes:1,complete:false,crossContact:true,template:true};
 }
 async function read(url,signal,fetcher,json=false){
  const response=await fetcher(url,{signal,credentials:'omit',referrerPolicy:'no-referrer'});

@@ -10,10 +10,11 @@ test('online Chinese dish becomes a meal set and is the default eligible recomme
  assert.match(rows[0].meal.name,/米饭/);assert.match(rows[0].meal.name,/小白菜/);assert.ok(rows[0].reasons.some(r=>r.includes('健身')));
  assert.ok(!recommendations(s,[remote()],[remote().id]).some(r=>r.meal.id===remote().id));
 });
-test('hard restrictions are not relaxed to admit incomplete online recipes or side dishes',()=>{
+test('recipe ingredients and side dishes are filtered automatically without manual confirmation',()=>{
  const s=initialState();s.profile.avoid=['白菜'];assert.ok(!makeMealSet(remote(),s.profile).name.includes('白菜'));
- assert.ok(recommendations(s,[remote()]).every(r=>!r.meal.source));
- s.profile.avoid=[];s.profile.allergyStatus='some';s.profile.allergies=['鸡蛋'];assert.ok(recommendations(s,[remote()]).every(r=>!r.meal.source));
+ assert.ok(recommendations(s,[remote()]).some(r=>r.meal.source));
+ s.profile.avoid=['鸡肉'];assert.ok(recommendations(s,[remote()]).every(r=>!r.meal.ingredients.includes('鸡肉')));
+ s.profile.avoid=[];s.profile.allergyStatus='some';s.profile.allergies=['鸡蛋'];assert.ok(recommendations(s,[remote()]).some(r=>r.meal.source));
 });
 test('cached source fields are constrained, unverified flags cannot be smuggled in',()=>{
  const cached=readCatalog(JSON.stringify({at:Date.now(),meals:[{...remote(),complete:true,crossContact:false}]}));

@@ -50,7 +50,16 @@ test('swap immediately changes the only set, without opening a reason dialog',()
  assert.notEqual(element('#app').innerHTML,before);assert.equal(element('#modal-content').innerHTML,'');
 });
 test('selected plan does not compete with a second meal suggestion',()=>{
- const s=core.initialState();s.onboarded=true;core.planMeal(s,s.meals[0]);
+ const s=core.initialState();s.onboarded=true;core.planMeal(s,data.SEED_MEALS[0]);
  const {element}=boot(s);const html=element('#app').innerHTML;
  assert.match(html,/这顿已经选好/);assert.equal((html.match(/<article class="meal-card">/g)||[]).length,0);assert.match(html,/换一套/);
+});
+test('personal list only contains adopted meals and has no recipe-edit confirmation workflow',()=>{
+ const {context}=boot();let html=vm.runInContext('libraryView()',context);
+ assert.match(html,/还没有采纳过/);assert.doesNotMatch(html,/添加一份|data-action="edit-meal"|共用厨具/);
+ vm.runInContext('planMeal(state,recommendations(state,[])[0].meal)',context);
+ html=vm.runInContext('libraryView()',context);assert.match(html,/采纳 1 次/);assert.match(html,/已吃过 0 次/);
+ assert.equal((html.match(/class="list-row"/g)||[]).length,1);
+ const recommendation=vm.runInContext('card(recommendations(state,[])[0])',context);
+ assert.doesNotMatch(recommendation,/交叉接触|信息待确认|已由录入者|核对完整配料/);
 });

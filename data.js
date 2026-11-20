@@ -8,7 +8,7 @@ export const QUESTIONS = [
 ];
 export const SCENES = ['自己做','外卖','食堂','便利店'];
 // All included meals are explicitly recipe templates, not verified restaurant meals.
-const recipe = (id,name,ingredients,allergens,tags,minutes,cost,method,emoji) => ({id,name,ingredients,allergens,tags,minutes,cost,method,emoji,scene:'自己做',complete:true,crossContact:true,template:true});
+const recipe = (id,name,ingredients,allergens,tags,minutes,cost,method,emoji) => ({kind:'recipe',id,name,ingredients,allergens,tags,minutes,cost,method,emoji,scene:'自己做',complete:true,crossContact:true,template:true});
 export const SEED_MEALS = [
  recipe('tomato-rice','番茄鸡蛋饭',['米饭','番茄','鸡蛋','菜籽油','食盐'],['蛋'],['rice','soupy','light','none','hot'],15,12,'米饭配番茄炒蛋；配料可按你自己的做法编辑。','🍅'),
  recipe('mushroom-noodle','香菇青菜汤面',['小麦面条','香菇','青菜','菜籽油','食盐','水'],['小麦'],['noodle','soupy','light','none','hot'],15,10,'面条煮熟，加入青菜和香菇。','🍜'),
