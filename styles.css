@@ -6,3 +6,5 @@
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
 
 .welcome-art{border-radius:22px}
+
+.health-note{font-size:12px;color:var(--muted);margin:8px 0 18px}.health-note summary{padding:8px 0;cursor:pointer}.health-note p{margin-top:8px}.meal-body{overflow-wrap:anywhere}

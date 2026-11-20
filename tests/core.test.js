@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initialState,emptyProfile,checkMeal,rankMeals,saveProfile,planMeal,confirmEaten,validateState,validateMeal,createBackup,hasUncoveredHealth} from '../core.js';
+import {initialState,emptyProfile,checkMeal,rankMeals,saveProfile,planMeal,confirmEaten,validateState,validateMeal,createBackup,hasUncoveredHealth,goalReasons,mergeNewTemplates} from '../core.js';
 const verifiedMeal = state => ({...state.meals[0],crossContact:false});
 test('allergy matches ingredient aliases and cannot be overridden by preference',()=>{
  const s=initialState();s.profile.allergyStatus='some';s.profile.allergies=['鸡蛋'];s.profile.prefs={staple:'rice'};
@@ -43,9 +43,10 @@ test('planning is not eating, profile changes invalidate plans, history remains'
 test('changing ingredients causes old plans to fail fresh checks',()=>{
  const s=initialState();s.profile.avoid=['花生'];planMeal(s,s.meals[0]);s.meals[0].ingredients.push('花生');assert.throws(()=>confirmEaten(s));
 });
-test('budget, time, and scene are respected; empty result never relaxes constraints',()=>{
- const s=initialState();s.context.scene='外卖';assert.equal(rankMeals(s).candidates.length,0);
- s.context.scene='自己做';s.context.budget=1;assert.equal(rankMeals(s).candidates.length,0);
+test('budget and time no longer filter; inspiration spans scenes but custom meals retain scene',()=>{
+ const s=initialState(), count=rankMeals(s).candidates.length;
+ s.context.budget=1;s.context.time=1;s.context.scene='外卖';assert.equal(rankMeals(s).candidates.length,count);
+ s.meals=[{...s.meals[0],template:false}];assert.equal(rankMeals(s).candidates.length,0);
 });
 test('backup validates, private-free export removes health, plan and historical notes',()=>{
  const s=initialState();s.profile.reminders='private';s.profile.allergyStatus='some';s.profile.allergies=['蛋'];
@@ -62,4 +63,16 @@ test('imported plans require review and acknowledgement is never imported',()=>{
 });
 test('matching a craving never includes a blocked meal',()=>{
  const s=initialState();s.profile.avoid=['番茄'];assert.ok(rankMeals(s,{wish:'番茄'}).candidates.every(x=>!x.meal.name.includes('番茄')));
+});
+
+test('goals influence actual ranking with composition-specific reasons',()=>{
+ const s=initialState();s.profile.goal='减脂与健身';
+ const top=rankMeals(s).candidates[0];assert.ok(top.reasons.some(r=>r.includes('减脂')));assert.ok(top.reasons.some(r=>r.includes('健身')));
+ assert.deepEqual(goalReasons({...s.meals[0],tags:['rich'],ingredients:['土豆']},s.profile.goal),[]);
+ s.profile.avoid=['鸡蛋'];assert.ok(rankMeals(s).candidates.every(r=>!r.meal.ingredients.includes('鸡蛋')));
+});
+test('catalog migration retains profile, edits and deletions across reloads',()=>{
+ const s=initialState();s.catalogVersion=1;s.meals=s.meals.slice(0,12);s.meals[0].name='my edit';s.profile.avoid=['花生'];
+ mergeNewTemplates(s);assert.equal(s.meals.length,42);assert.equal(s.meals[0].name,'my edit');assert.deepEqual(s.profile.avoid,['花生']);
+ s.meals.pop();const restored=validateState(s);mergeNewTemplates(restored);assert.equal(restored.meals.length,41);
 });

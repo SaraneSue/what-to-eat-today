@@ -18,7 +18,7 @@ test('manifest and all static cache assets resolve under a Pages project subpath
 });
 test('activation only removes outdated caches belonging to this project',async()=>{
  const handlers={},deleted=[];let claimed=false;
- const current='meal-v0-shell-/my-meals/-1';
+ const current='meal-v0-shell-/my-meals/-0.2.0';
  vm.runInNewContext(readFileSync(new URL('sw.js',root),'utf8'),{URL,self:{location:{href:'https://example.github.io/my-meals/sw.js',origin:'https://example.github.io'},addEventListener:(n,f)=>handlers[n]=f,clients:{claim:async()=>{claimed=true;}}},caches:{keys:async()=>[current,'meal-v0-shell-/my-meals/-0','meal-v0-shell-/another/-1','unrelated'],delete:async k=>deleted.push(k)}});
  await new Promise((resolve,reject)=>handlers.activate({waitUntil:p=>p.then(resolve,reject)}));
  assert.deepEqual(deleted,['meal-v0-shell-/my-meals/-0']);assert.ok(claimed);
@@ -34,4 +34,10 @@ test('HTML uses only packaged local JS and CSS, and no inline executable scripts
  assert.ok(html.includes('Content-Security-Policy'));assert.ok(!/<script(?![^>]*src=)[^>]*>/i.test(html));
  for(const path of ['app.js','core.js','data.js','styles.css','sw.js'])assert.ok(existsSync(new URL(path,root)));
  assert.ok(!/style="/.test(readFileSync(new URL('app.js',root),'utf8')));
+});
+test('service worker version handshake matches the application version',async()=>{
+ const {APP_VERSION}=await import('../updates.js');const handlers={};let response;
+ vm.runInNewContext(readFileSync(new URL('sw.js',root),'utf8'),{URL,self:{location:{href:'https://example.github.io/my-meals/sw.js'},addEventListener:(event,fn)=>handlers[event]=fn}});
+ handlers.message({data:'GET_VERSION',ports:[{postMessage:value=>response=value}]});
+ assert.equal(response.version,APP_VERSION);
 });

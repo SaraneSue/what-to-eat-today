@@ -2,7 +2,7 @@ import {QUESTIONS, SEED_MEALS, ALLERGEN_GROUPS, SCENES} from './data.js';
 export const STORAGE_KEY = 'meal-v0:data:1';
 export const splitItems = value => [...new Set(String(value || '').split(/[\n,，、;；]/).map(s=>s.trim()).filter(Boolean))].slice(0,50);
 export const emptyProfile = () => ({avoid:[],dislikes:[],allergyStatus:'unknown',allergies:[],labStatus:'unknown',labs:[],conditionStatus:'unknown',conditions:[],reminders:'',goal:'规律吃饭',budget:35,scene:'自己做',prefs:{},updatedAt:null});
-export const initialState = () => ({schema:1,onboarded:false,profile:emptyProfile(),meals:structuredClone(SEED_MEALS),history:[],plan:null,context:{scene:'自己做',budget:35,time:45,meal:'午餐'},generalAccepted:false,draft:null,revision:0});
+export const initialState = () => ({schema:1,catalogVersion:2,onboarded:false,profile:emptyProfile(),meals:structuredClone(SEED_MEALS),history:[],plan:null,context:{scene:'自己做',budget:35,time:45,meal:'午餐'},generalAccepted:false,draft:null,revision:0});
 export const hasUncoveredHealth = p => p.labStatus!=='none' || p.conditionStatus!=='none' || Boolean(p.reminders.trim());
 export function healthSummary(p){
   const rows=[];
@@ -42,9 +42,7 @@ export function rankMeals(state,{exclude=[],wish=''}={}){
  const rejected=[];
  const candidates=state.meals.filter(m=>{
   const reasons=checkMeal(m,profile);
-  if(m.scene!==context.scene) reasons.push('就餐方式不同');
-  if(m.cost>context.budget) reasons.push('超过预算');
-  if(m.minutes>context.time) reasons.push('超过时间');
+  if(!m.template && m.scene!==context.scene) reasons.push('就餐方式不同');
   if(exclude.includes(m.id)) reasons.push('本次已跳过');
   if(reasons.length){rejected.push({meal:m,reasons});return false;}return true;
  }).map(m=>{
@@ -53,6 +51,8 @@ export function rankMeals(state,{exclude=[],wish=''}={}){
     if(q.key==='explore'){if((pref==='familiar'&&seen.has(m.id))||(pref==='new'&&!seen.has(m.id))){score++;reasons.push(pref==='new'?'给口味一点新鲜感':'你以前选过');}}
     else if(m.tags.includes(pref)){score++;reasons.push(q.values.indexOf(pref)===0?q.a:q.b);}
    }
+   const goals=goalReasons(m,profile.goal);score+=goals.length*2;reasons.unshift(...goals);
+   if(!reasons.length)reasons.push(m.template?'换一种餐食灵感':'来自你的常吃清单');
    if(profile.dislikes.some(d=>mentions(m,d)))score-=4;
    if(state.history.slice(0,3).some(h=>h.mealId===m.id))score-=1;
    if(wish && mentions(m,wish)){score+=10;reasons.unshift('与你现在想吃的相符');}
@@ -106,7 +106,7 @@ export function validateMeal(m){
 }
 export function validateState(input){
  if(!input||input.schema!==1)throw new Error('不是支持的 v0 备份格式');
- const result=initialState();result.profile=validateProfile(input.profile);result.onboarded=bool(input.onboarded);result.meals=arr(input.meals,500).map(validateMeal);
+ const result=initialState();result.catalogVersion=input.catalogVersion===2?2:1;result.profile=validateProfile(input.profile);result.onboarded=bool(input.onboarded);result.meals=arr(input.meals,500).map(validateMeal);
  if(new Set(result.meals.map(m=>m.id)).size!==result.meals.length)throw new Error('餐食编号重复');
  result.history=arr(input.history,1000).map(h=>({id:str(h.id,100),mealId:str(h.mealId,100),name:str(h.name,100),at:date(h.at),mealSlot:str(h.mealSlot,20),feedback:str(h.feedback,100),note:str(h.note,500)}));
  const c=input.context;result.context={scene:choice(c.scene,SCENES),budget:num(c.budget,1,10000),time:num(c.time,1,600),meal:choice(c.meal,['早餐','午餐','晚餐','加餐'])};
@@ -118,4 +118,19 @@ export function createBackup(state,includeHealth){
  const copy=structuredClone(state);copy.draft=null;copy.generalAccepted=false;
  if(!includeHealth){copy.profile=emptyProfile();copy.onboarded=false;copy.plan=null;copy.history=[];copy.revision=0;}
  return {...copy,exportedAt:new Date().toISOString(),backupType:includeHealth?'full-private':'meal-library-only'};
+}
+
+// Qualitative composition cues only: no nutrient quantities or medical claims.
+export function goalReasons(meal,goal){
+ const ingredients=meal.ingredients.join(' '), reasons=[];
+ if(/减脂|减肥/.test(goal) && meal.tags.includes('light'))reasons.push('减脂意向：优先清淡口味的做法，份量由你决定');
+ if(/健身/.test(goal) && /鸡肉|牛肉|鸡蛋|豆腐|鱼|虾|酸奶|牛奶/.test(ingredients))reasons.push('健身意向：配料含肉、蛋、豆或乳类，可自由搭配');
+ return reasons;
+}
+export function mergeNewTemplates(state){
+ // Only add the new catalog once; preserve edited and deliberately deleted meals.
+ if(state.catalogVersion===2)return state;
+ const ids=new Set(state.meals.map(m=>m.id));
+ for(const meal of SEED_MEALS)if(meal.id.startsWith('expanded-')&&!ids.has(meal.id))state.meals.push(structuredClone(meal));
+ state.catalogVersion=2;return state;
 }
