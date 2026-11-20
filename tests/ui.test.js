@@ -7,13 +7,14 @@ import * as core from '../core.js';
 import * as data from '../data.js';
 import * as online from '../online.js';
 import * as updates from '../updates.js';
-function boot(saved){
+import * as recs from '../recommendations.js';
+function boot(saved,fetcher=async()=>{throw Error("offline test");}){
  const elements=new Map(),events={};
  const element=selector=>{if(!elements.has(selector))elements.set(selector,{innerHTML:'',hidden:false,textContent:'',classList:{add(){},remove(){}},addEventListener(){},showModal(){},close(){}});return elements.get(selector);};
- const context=vm.createContext({...core,...data,...online,...updates,structuredClone,console,URL,AbortController,MessageChannel,setTimeout,clearTimeout,
+ const context=vm.createContext({...core,...data,...online,...updates,...recs,fetchChineseMeals:fetcher,structuredClone,console,URL,AbortController,MessageChannel,setTimeout,clearTimeout,
  document:{querySelector:element,querySelectorAll:()=>[],addEventListener:(event,fn)=>(events[event]??=[]).push(fn)},
  window:{addEventListener(){},scrollTo(){}},navigator:{onLine:true},location:{hash:''},
- localStorage:{getItem:()=>saved?JSON.stringify(saved):null,setItem(){}}});
+ localStorage:{getItem:key=>key===core.STORAGE_KEY&&saved?JSON.stringify(saved):null,setItem(){}}});
  vm.runInContext(readFileSync(new URL('../app.js',import.meta.url),'utf8').replace(/^import .*;\n/gm,''),context);
  return {context,element,events};
 }
@@ -26,19 +27,30 @@ test('existing user sees recipe first, collapsed explanation after and no budget
  assert.ok(html.indexOf('meal-card')<html.indexOf('本次考虑了什么'));
  assert.match(html,/<details class="health-note">/);assert.doesNotMatch(html,/预算|分钟|查看排除原因|进入通用选择/);
 });
-test('goal options, online discovery and untrusted text render correctly',()=>{
- const {context}=boot();
- const setup=vm.runInContext('step=3;setupView()',context);assert.match(setup,/减脂与健身/);assert.doesNotMatch(setup,/预算/);
- const html=vm.runInContext(`onlineTerm='<img onerror=bad>';onlineRows=[{id:'online-1',name:'<script>evil</script>',ingredients:[]}];discoverView()`,context);
- assert.doesNotMatch(html,/<script>|<img/);assert.match(html,/&lt;script&gt;/);assert.match(html,/待核对/);
+
+test('goals stay editable and only one recommendation is rendered without a search entry',()=>{
+ const {context}=boot();assert.match(vm.runInContext('step=3;setupView()',context),/减脂与健身/);
+ const s=core.initialState();s.onboarded=true;const {element}=boot(s);const html=element('#app').innerHTML;
+ assert.equal((html.match(/<article class="meal-card">/g)||[]).length,1);
+ assert.doesNotMatch(html,/联网找更多|还有 .* 个选择|online-form/);assert.match(html,/换一套/);
 });
-test('late search response cannot overwrite a more recent keyword result',async()=>{
- const {context}=boot();const pending={};
- context.searchRecipes=term=>new Promise(resolve=>pending[term]=resolve);
- const first=vm.runInContext("runSearch('chicken')",context);
- const second=vm.runInContext("runSearch('beef')",context);
- pending.beef([{id:'online-2',name:'Beef',ingredients:[]}]);await second;
- pending.chicken([{id:'online-1',name:'Chicken',ingredients:[]}]);await first;
- assert.equal(vm.runInContext('onlineTerm',context),'beef');
- assert.equal(vm.runInContext('onlineRows[0].name',context),'Beef');
+test('background Chinese fetch starts automatically and cached results appear in the main card',async()=>{
+ const s=core.initialState();s.onboarded=true;let calls=0;
+ const m=online.parseRecipe('# 蒸鸡的做法\n## 必备原料和工具\n- 鸡肉\n- 盐\n## 操作\n- 蒸熟','dishes/meat_dish/蒸鸡.md');
+ const {element,context}=boot(s,async()=>{calls++;return [m];});
+ await new Promise(resolve=>setImmediate(resolve));
+ assert.equal(calls,1);assert.match(element('#app').innerHTML,/蒸鸡/);
+ assert.equal((element('#app').innerHTML.match(/<article class="meal-card">/g)||[]).length,1);
+ vm.runInContext('render()',context);assert.equal(calls,1);
+});
+test('swap immediately changes the only set, without opening a reason dialog',()=>{
+ const s=core.initialState();s.onboarded=true;const {element,context,events}=boot(s);
+ const before=element('#app').innerHTML,id=vm.runInContext('recommendations(state,catalog.meals,skip)[0].meal.id',context);
+ for(const callback of events.click)callback({target:{closest:()=>({dataset:{action:'swap',id}})}});
+ assert.notEqual(element('#app').innerHTML,before);assert.equal(element('#modal-content').innerHTML,'');
+});
+test('selected plan does not compete with a second meal suggestion',()=>{
+ const s=core.initialState();s.onboarded=true;core.planMeal(s,s.meals[0]);
+ const {element}=boot(s);const html=element('#app').innerHTML;
+ assert.match(html,/这顿已经选好/);assert.equal((html.match(/<article class="meal-card">/g)||[]).length,0);assert.match(html,/换一套/);
 });

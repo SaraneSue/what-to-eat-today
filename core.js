@@ -52,7 +52,7 @@ export function rankMeals(state,{exclude=[],wish=''}={}){
     else if(m.tags.includes(pref)){score++;reasons.push(q.values.indexOf(pref)===0?q.a:q.b);}
    }
    const goals=goalReasons(m,profile.goal);score+=goals.length*2;reasons.unshift(...goals);
-   if(!reasons.length)reasons.push(m.template?'换一种餐食灵感':'来自你的常吃清单');
+   if(!reasons.length)reasons.push(m.source?'来自中文家常食谱':'来自你的常吃与餐食灵感');
    if(profile.dislikes.some(d=>mentions(m,d)))score-=4;
    if(state.history.slice(0,3).some(h=>h.mealId===m.id))score-=1;
    if(wish && mentions(m,wish)){score+=10;reasons.unshift('与你现在想吃的相符');}
@@ -102,7 +102,7 @@ export function validateProfile(p){
  return out;
 }
 export function validateMeal(m){
- return {id:str(m.id,100),name:str(m.name,100),ingredients:textArray(m.ingredients),allergens:textArray(m.allergens),tags:textArray(m.tags),minutes:num(m.minutes,1,600),cost:num(m.cost,0,10000),method:str(m.method,1000),emoji:str(m.emoji||'🍽️',16),scene:choice(m.scene,SCENES),complete:bool(m.complete),crossContact:bool(m.crossContact),template:bool(m.template)};
+ return {source:typeof m.source==='string'&&/^https:\/\/github\.com\/Anduin2017\/HowToCook\/blob\/master\/dishes\/[A-Za-z0-9%_.~\/-]+\.md$/.test(m.source)?m.source:'',id:str(m.id,100),name:str(m.name,100),ingredients:textArray(m.ingredients),allergens:textArray(m.allergens),tags:textArray(m.tags),minutes:num(m.minutes,1,600),cost:num(m.cost,0,10000),method:str(m.method,1000),emoji:str(m.emoji||'🍽️',16),scene:choice(m.scene,SCENES),complete:bool(m.complete),crossContact:bool(m.crossContact),template:bool(m.template)};
 }
 export function validateState(input){
  if(!input||input.schema!==1)throw new Error('不是支持的 v0 备份格式');
@@ -124,7 +124,7 @@ export function createBackup(state,includeHealth){
 export function goalReasons(meal,goal){
  const ingredients=meal.ingredients.join(' '), reasons=[];
  if(/减脂|减肥/.test(goal) && meal.tags.includes('light'))reasons.push('减脂意向：优先清淡口味的做法，份量由你决定');
- if(/健身/.test(goal) && /鸡肉|牛肉|鸡蛋|豆腐|鱼|虾|酸奶|牛奶/.test(ingredients))reasons.push('健身意向：配料含肉、蛋、豆或乳类，可自由搭配');
+ if(/健身/.test(goal) && /鸡肉|鸡胸|鸡翅|鸡腿|牛肉|鸡蛋|豆腐|鱼|虾|酸奶|牛奶/.test(ingredients))reasons.push('健身意向：配料含肉、蛋、豆或乳类，可自由搭配');
  return reasons;
 }
 export function mergeNewTemplates(state){
