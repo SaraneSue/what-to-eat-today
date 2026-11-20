@@ -1,9 +1,9 @@
 const SCOPE = new URL('./', self.location.href).href;
 const PREFIX = `meal-v0-shell-${new URL(SCOPE).pathname}-`;
-const CACHE = PREFIX + '0.4.0';
-const FILES = ['./','./index.html','./styles.css','./app.js','./core.js','./data.js','./online.js','./recommendations.js','./updates.js','./manifest.webmanifest','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png','./assets/icon-maskable-512.png'];
+const CACHE = PREFIX + '0.5.0';
+const FILES = ['./','./index.html','./styles.css','./app.js','./core.js','./data.js','./online.js','./recommendations.js','./scenes.js','./updates.js','./manifest.webmanifest','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png','./assets/icon-maskable-512.png'];
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(file => new URL(file, SCOPE).href)))));
-self.addEventListener('message', event => { if(event.data==='GET_VERSION')event.ports?.[0]?.postMessage({version:'0.4.0'}); if (event.data === 'SKIP_WAITING') self.skipWaiting(); });
+self.addEventListener('message', event => { if(event.data==='GET_VERSION')event.ports?.[0]?.postMessage({version:'0.5.0'}); if (event.data === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('activate', event => event.waitUntil((async () => {
   // Only remove this app's own caches. A Pages origin can host other PWAs.
   for (const key of await caches.keys()) if (key.startsWith(PREFIX) && key !== CACHE) await caches.delete(key);

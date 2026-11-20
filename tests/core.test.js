@@ -9,9 +9,10 @@ test('allergy matches ingredient aliases and cannot be overridden by preference'
  assert.ok(checkMeal(verifiedMeal(s),s.profile).some(s=>s.includes('过敏原')));
  assert.ok(!rankMeals(s).candidates.some(r=>r.meal.id==='tomato-rice'));
 });
-test('unmapped allergens stay unsupported; cross contact never changes filtering',()=>{
- const s=fixtureState();s.profile.allergyStatus='some';s.profile.allergies=['芹菜'];
- assert.ok(checkMeal(verifiedMeal(s),s.profile).some(s=>s.includes('暂不支持')));
+test('custom food names match ingredients without blocking unrelated recipes; cross contact is ignored',()=>{
+ const s=fixtureState();s.profile.allergyStatus='some';s.profile.allergies=['茴香'];
+ assert.deepEqual(checkMeal(verifiedMeal(s),s.profile),[]);
+ assert.ok(checkMeal({...verifiedMeal(s),ingredients:['茴香']},s.profile).some(r=>r.includes('过敏原')));
  s.profile.allergies=['花生'];assert.deepEqual(checkMeal({...s.meals[0],crossContact:true},s.profile),checkMeal({...s.meals[0],crossContact:false},s.profile));
 });
 test('compound ingredient declarations cover soy and wheat',()=>{

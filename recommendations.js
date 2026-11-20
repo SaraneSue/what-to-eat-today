@@ -1,3 +1,4 @@
+import {SCENE_MEALS,SCENE_GUIDANCE,isCommonMenuDish,adaptMenuMeal} from './scenes.js';
 import {SEED_MEALS} from './data.js';
 import {checkMeal,rankMeals,validateMeal} from './core.js';
 export const CACHE_KEY='meal-v0:chinese-recipes:2';
@@ -19,12 +20,15 @@ export function makeMealSet(meal,profile){
 export function recommendations(state,remote,exclude=[],wish=''){
  // Catalog is app data. Personal snapshots enter only through actual adoptions.
  const adoptedIds=new Set((state.adoptions||[]).map(a=>a.mealId));
- const snapshots=state.meals.filter(m=>adoptedIds.has(m.id));
+ const scene=state.context.scene;
+ const snapshots=state.meals.filter(m=>adoptedIds.has(m.id)&&m.scene===scene);
  const recipes=new Map([...SEED_MEALS,...remote].map(m=>[m.id,m]));
- const generated=[...recipes.values()].map(m=>makeMealSet(m,state.profile));
+ const cooked=[...recipes.values()];
+ const generated=scene==='自己做'?cooked.map(m=>makeMealSet(m,state.profile)):[...SCENE_MEALS.filter(m=>m.scene===scene),...(scene==='便利店'?[]:cooked.filter(isCommonMenuDish).map(m=>adaptMenuMeal(makeMealSet(m,state.profile),scene)))];
  const combined={...state,meals:[...new Map([...snapshots,...generated].map(m=>[m.id,m])).values()]};
  const rows=rankMeals(combined,{exclude,wish}).candidates;
  // Prefer the best matching eligible online set; local meals remain the fallback and later choices.
  rows.sort((a,b)=>Number(Boolean(b.meal.source))-Number(Boolean(a.meal.source))||b.score-a.score||a.meal.id.localeCompare(b.meal.id));
+ for(const row of rows)row.reasons=[SCENE_GUIDANCE[scene].reason,...row.reasons].slice(0,4);
  return rows;
 }

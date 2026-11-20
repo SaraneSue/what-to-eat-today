@@ -8,10 +8,11 @@ import * as data from '../data.js';
 import * as online from '../online.js';
 import * as updates from '../updates.js';
 import * as recs from '../recommendations.js';
+import * as scenes from '../scenes.js';
 function boot(saved,fetcher=async()=>{throw Error("offline test");}){
  const elements=new Map(),events={};
  const element=selector=>{if(!elements.has(selector))elements.set(selector,{innerHTML:'',hidden:false,textContent:'',classList:{add(){},remove(){}},addEventListener(){},showModal(){},close(){}});return elements.get(selector);};
- const context=vm.createContext({...core,...data,...online,...updates,...recs,fetchChineseMeals:fetcher,structuredClone,console,URL,AbortController,MessageChannel,setTimeout,clearTimeout,
+ const context=vm.createContext({...core,...data,...online,...updates,...recs,...scenes,fetchChineseMeals:fetcher,structuredClone,console,URL,AbortController,MessageChannel,setTimeout,clearTimeout,
  document:{querySelector:element,querySelectorAll:()=>[],addEventListener:(event,fn)=>(events[event]??=[]).push(fn)},
  window:{addEventListener(){},scrollTo(){}},navigator:{onLine:true},location:{hash:''},
  localStorage:{getItem:key=>key===core.STORAGE_KEY&&saved?JSON.stringify(saved):null,setItem(){}}});
@@ -62,4 +63,10 @@ test('personal list only contains adopted meals and has no recipe-edit confirmat
  assert.equal((html.match(/class="list-row"/g)||[]).length,1);
  const recommendation=vm.runInContext('card(recommendations(state,[])[0])',context);
  assert.doesNotMatch(recommendation,/交叉接触|信息待确认|已由录入者|核对完整配料/);
+});
+test('reported food restrictions render a meal card rather than an empty state',()=>{
+ const s=core.initialState();s.onboarded=true;
+ s.profile.avoid=['羊肉','海带','苦瓜'];s.profile.allergyStatus='some';s.profile.allergies=['羊肉','海带'];
+ const {element}=boot(s);const html=element('#app').innerHTML;
+ assert.match(html,/<article class="meal-card">/);assert.doesNotMatch(html,/暂时没有匹配的餐食/);
 });

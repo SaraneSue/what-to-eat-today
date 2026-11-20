@@ -32,8 +32,7 @@ export function checkMeal(meal,profile){
  if(profile.allergyStatus==='some'){
    for(const allergy of profile.allergies){
      const groups=allergenGroups(allergy);
-     if(!groups.length) reasons.push(`暂不支持自动核对“${allergy}”过敏原`);
-     else if(groups.some(g=>declared.has(g)||ALLERGEN_GROUPS[g]?.some(alias=>mentions(meal,alias)))||mentions(meal,allergy)) reasons.push(`可能包含过敏原“${allergy}”`);
+     if(groups.some(g=>declared.has(g)||ALLERGEN_GROUPS[g]?.some(alias=>mentions(meal,alias)))||mentions(meal,allergy)) reasons.push(`可能包含过敏原“${allergy}”`);
    }
  }
  return [...new Set(reasons)];
@@ -71,7 +70,7 @@ export function planMeal(state,meal,{recordAdoption=true}={}){
  if(checkMeal(meal,state.profile).length)throw new Error('这份餐食没有通过当前配料约束检查');
  const stored=state.meals.findIndex(m=>m.id===meal.id);if(stored<0)state.meals.push(structuredClone(meal));else state.meals[stored]=structuredClone(meal);
  if(recordAdoption){state.adoptions??=[];state.adoptions.unshift({id:globalThis.crypto.randomUUID(),mealId:meal.id,name:meal.name,at:new Date().toISOString()});state.adoptions=state.adoptions.slice(0,1000);}
- state.plan={mealId:meal.id,name:meal.name,createdAt:new Date().toISOString(),mealSlot:state.context.meal,revision:state.revision,needsReview:false};
+ state.plan={scene:meal.scene,mealId:meal.id,name:meal.name,createdAt:new Date().toISOString(),mealSlot:state.context.meal,revision:state.revision,needsReview:false};
 }
 export function confirmEaten(state){
  if(!state.plan)throw new Error('还没有选择餐食');
@@ -115,7 +114,7 @@ export function validateState(input){
  result.adoptions=input.adoptions===undefined?null:arr(input.adoptions,1000).map(a=>({id:str(a.id,150),mealId:str(a.mealId,100),name:str(a.name,100),at:date(a.at)}));
  const c=input.context;result.context={scene:choice(c.scene,SCENES),budget:num(c.budget,1,10000),time:num(c.time,1,600),meal:choice(c.meal,['早餐','午餐','晚餐','加餐'])};
  result.revision=num(input.revision,0,Number.MAX_SAFE_INTEGER);result.generalAccepted=false;
- if(input.plan)result.plan={mealId:str(input.plan.mealId,100),name:str(input.plan.name,100),createdAt:date(input.plan.createdAt),mealSlot:str(input.plan.mealSlot,20),revision:num(input.plan.revision,0,Number.MAX_SAFE_INTEGER),needsReview:true};
+ if(input.plan)result.plan={scene:choice(input.plan.scene||result.meals.find(m=>m.id===input.plan.mealId)?.scene||'自己做',SCENES),mealId:str(input.plan.mealId,100),name:str(input.plan.name,100),createdAt:date(input.plan.createdAt),mealSlot:str(input.plan.mealSlot,20),revision:num(input.plan.revision,0,Number.MAX_SAFE_INTEGER),needsReview:true};
  return migratePersonalMeals(result);
 }
 export function createBackup(state,includeHealth){
