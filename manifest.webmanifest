@@ -1,0 +1,17 @@
+{
+  "id": "./",
+  "name": "吃点什么 · 自用 v0",
+  "short_name": "吃点什么",
+  "lang": "zh-CN",
+  "description": "少一点纠结，认真吃好这一餐",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#faf8f3",
+  "theme_color": "#365b40",
+  "icons": [
+    { "src": "./assets/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

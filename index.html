@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#365b40">
+  <meta name="description" content="少一点纠结，认真吃好这一餐。只在本机保存的个人饮食选择工具。">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+  <title>吃点什么 · 自用 v0</title>
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="./assets/icon-192.png">
+  <link rel="stylesheet" href="./styles.css">
+  <script type="module" src="./app.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="brand-bar"><a href="#today" class="brand"><img src="./assets/icon.svg" alt="" width="30" height="30">吃点什么<span>YOUR DAILY TABLE</span></a><span id="network" class="connection">本机保存</span></header>
+    <div id="storage-warning" class="notice danger" hidden></div>
+    <div id="update-banner" class="notice" hidden>新版本已就绪。<button id="update-app" class="text-button">更新应用</button></div>
+    <main id="app" tabindex="-1"></main>
+    <nav id="nav" class="bottom-nav" aria-label="主导航"><a href="#today" data-nav="today"><span aria-hidden="true">◉</span>今天</a><a href="#history" data-nav="history"><span aria-hidden="true">▤</span>吃过</a><a href="#profile" data-nav="profile"><span aria-hidden="true">◎</span>我的</a></nav>
+  </div>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <dialog id="modal"><div id="modal-content"></div><button id="close-modal" class="secondary full">关闭</button></dialog>
+  <noscript>此工具需要启用 JavaScript；个人信息不会上传到服务器。</noscript>
+</body>
+</html>
